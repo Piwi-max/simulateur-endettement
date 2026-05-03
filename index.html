@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulateur de taux d'endettement</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p-teal:#1D9E75;
+  --p-teal-light:#E1F5EE;
+  --p-teal-mid:#9FE1CB;
+  --p-dark:#1a2433;
+  --p-gray:#6b7280;
+  --p-gray-light:#f4f6f5;
+  --p-border:#e0ebe7;
+  --p-white:#ffffff;
+}
+body{background:#fff;min-height:100vh;display:flex;justify-content:center;padding:2rem 1rem}
+.wrap{padding:1.5rem 0;font-family:'Helvetica Neue',Arial,sans-serif;color:var(--p-dark);max-width:680px;width:100%}
+.section{margin-bottom:1.25rem}
+.section-label{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--p-teal);margin-bottom:10px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;color:var(--p-gray);font-weight:500}
+.field input{font-size:14px;padding:9px 12px;border:1px solid var(--p-border);border-radius:8px;background:var(--p-white);color:var(--p-dark);width:100%;transition:border 0.15s}
+.field input:focus{outline:none;border-color:var(--p-teal);box-shadow:0 0 0 3px rgba(29,158,117,0.08)}
+.field input::placeholder{color:#bcc8c2}
+.hint{font-size:11px;color:#9eb8ae;margin-top:2px}
+.toggle-row{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--p-gray-light);border-radius:8px;margin-bottom:10px;cursor:pointer}
+.toggle-row label{font-size:13px;color:var(--p-dark);cursor:pointer;font-weight:400}
+input[type=checkbox]{width:15px;height:15px;accent-color:var(--p-teal);cursor:pointer;flex-shrink:0}
+.hidden{display:none}
+.sep{height:1px;background:var(--p-border);margin:1.25rem 0}
+.results{animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.metric{background:var(--p-gray-light);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.metric .ml{font-size:11px;color:var(--p-gray);margin-bottom:6px;font-weight:500}
+.metric .mv{font-size:20px;font-weight:700;color:var(--p-dark);margin-bottom:10px}
+.gauge-bar{height:6px;background:var(--p-border);border-radius:99px;overflow:hidden}
+.gauge-fill{height:100%;border-radius:99px;transition:width 0.5s ease,background 0.5s ease}
+.g-ok{background:var(--p-teal)}
+.g-warn{background:#f59e0b}
+.g-bad{background:#ef4444}
+.highlight{background:var(--p-teal-light);border:1px solid var(--p-teal-mid);border-radius:12px;padding:22px 24px;margin-top:4px}
+.highlight .hl{font-size:12px;color:var(--p-teal);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px}
+.highlight .hv{font-size:36px;font-weight:800;color:var(--p-teal);margin-bottom:16px}
+.cta-btn{display:block;width:100%;margin-top:16px;padding:14px;background:var(--p-teal);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:10px;cursor:pointer;text-align:center;text-decoration:none;transition:opacity 0.15s}
+.cta-btn:hover{opacity:0.88}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="section">
+  <div class="section-label">Revenus du foyer</div>
+  <div class="fields">
+    <div class="field full">
+      <label>Salaire brut annuel du foyer (€)</label>
+      <input type="number" id="brut" placeholder="ex : 80 000" min="0" step="1000">
+      <span class="hint">Hors primes variables (sauf si présentes depuis + de 3 ans)</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-label">Charges actuelles</div>
+  <div class="fields">
+    <div class="field full">
+      <label>Loyer ou crédit résidence principale (€/mois)</label>
+      <input type="number" id="charge_jouissance" placeholder="ex : 1 200" min="0">
+      <span class="hint">Uniquement la charge de votre habitation principale</span>
+    </div>
+    <div class="field full">
+      <label>Autres crédits — conso, auto, LOA, étudiant… (€/mois)</label>
+      <input type="number" id="autres_credits" placeholder="ex : 300" min="0">
+    </div>
+  </div>
+
+  <div class="toggle-row" onclick="toggleImmo()">
+    <input type="checkbox" id="has_immo">
+    <label for="has_immo">J'ai déjà des investissements immobiliers (locatif, SCPI…)</label>
+  </div>
+  <div id="immo_block" class="hidden fields">
+    <div class="field">
+      <label>Loyers perçus (€/mois)</label>
+      <input type="number" id="loyers_percus" placeholder="ex : 500" min="0">
+    </div>
+    <div class="field">
+      <label>Mensualités crédits locatifs (€/mois)</label>
+      <input type="number" id="mensualites_locatif" placeholder="ex : 600" min="0">
+    </div>
+  </div>
+</div>
+
+<div class="sep"></div>
+
+<div id="results" class="hidden results">
+  <div class="section-label">Votre situation</div>
+
+  <div class="metric">
+    <div class="ml">Taux d'endettement actuel</div>
+    <div class="mv" id="r_taux">—</div>
+    <div class="gauge-bar"><div class="gauge-fill" id="g1" style="width:0%"></div></div>
+  </div>
+
+  <div class="highlight">
+    <div class="hl">Vous pouvez encore emprunter</div>
+    <div class="hv" id="r_max">—</div>
+    <a class="cta-btn" href="VOTRE_LIEN_HUBSPOT" target="_blank">📅 Réserver mon audit patrimonial gratuit →</a>
+  </div>
+</div>
+
+</div>
+
+<script>
+const TAUX_ANNUEL=0.0495,DUREE=300,TM=TAUX_ANNUEL/12;
+const COEFF=TM*Math.pow(1+TM,DUREE)/(Math.pow(1+TM,DUREE)-1);
+const LIMITE=0.35;
+
+function fmt(n){return Math.round(n).toLocaleString('fr-FR')+' €'}
+function pct(n){return (n*100).toFixed(1)+'%'}
+
+function toggleImmo(){
+  const cb=document.getElementById('has_immo');
+  cb.checked=!cb.checked;
+  document.getElementById('immo_block').classList.toggle('hidden',!cb.checked);
+  calc();
+}
+document.getElementById('has_immo').addEventListener('change',calc);
+
+['brut','charge_jouissance','autres_credits','loyers_percus','mensualites_locatif'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('input',calc);
+});
+
+function calc(){
+  const brut=parseFloat(document.getElementById('brut').value)||0;
+  if(!brut){document.getElementById('results').classList.add('hidden');return;}
+
+  const net=brut/12*0.77;
+  const cj=parseFloat(document.getElementById('charge_jouissance').value)||0;
+  const autres=parseFloat(document.getElementById('autres_credits').value)||0;
+  const has=document.getElementById('has_immo').checked;
+  const loyers=has?(parseFloat(document.getElementById('loyers_percus').value)||0):0;
+  const mens_loc=has?(parseFloat(document.getElementById('mensualites_locatif').value)||0):0;
+
+  const charges=cj+autres+mens_loc-(loyers*0.7);
+  const taux_actuel=charges/net;
+  const mens_dispo=Math.max(net*LIMITE-charges,0);
+  const cap=Math.max(mens_dispo/COEFF,0);
+
+  document.getElementById('r_taux').textContent=pct(taux_actuel);
+  document.getElementById('r_max').textContent=fmt(cap);
+
+  const w=Math.min(taux_actuel/LIMITE*100,100);
+  const bar=document.getElementById('g1');
+  bar.style.width=w+'%';
+  bar.className='gauge-fill '+(taux_actuel<=0.25?'g-ok':taux_actuel<=LIMITE?'g-warn':'g-bad');
+
+  document.getElementById('results').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
