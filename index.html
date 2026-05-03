@@ -143,9 +143,11 @@ function calc(){
   const loyers=has?(parseFloat(document.getElementById('loyers_percus').value)||0):0;
   const mens_loc=has?(parseFloat(document.getElementById('mensualites_locatif').value)||0):0;
 
-  const charges=cj+autres+mens_loc-(loyers*0.85);
-  const taux_actuel=charges/net;
-  const mens_dispo=Math.max(net*LIMITE-charges,0);
+  // Formule AXA : charges / (revenus + 70% loyers percus)
+  const charges=cj+autres+mens_loc;
+  const revenus_ajustes=net+(loyers*0.7);
+  const taux_actuel=charges/revenus_ajustes;
+  const mens_dispo=Math.max(revenus_ajustes*LIMITE-charges,0);
   const cap=Math.max(mens_dispo/COEFF,0);
 
   document.getElementById('r_taux').textContent=pct(taux_actuel);
