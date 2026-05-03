@@ -78,7 +78,7 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--p-teal);cursor:po
     </div>
   </div>
 
-  <div class="toggle-row" onclick="toggleImmo()">
+  <div class="toggle-row" style="margin-top:12px">
     <input type="checkbox" id="has_immo">
     <label for="has_immo">J'ai déjà des investissements immobiliers (locatif, SCPI…)</label>
   </div>
@@ -108,7 +108,7 @@ input[type=checkbox]{width:15px;height:15px;accent-color:var(--p-teal);cursor:po
   <div class="highlight">
     <div class="hl">Vous pouvez encore emprunter</div>
     <div class="hv" id="r_max">—</div>
-    <a class="cta-btn" href="VOTRE_LIEN_HUBSPOT" target="_blank">📅 Réserver mon audit patrimonial gratuit →</a>
+
   </div>
 </div>
 
@@ -122,13 +122,10 @@ const LIMITE=0.35;
 function fmt(n){return Math.round(n).toLocaleString('fr-FR')+' €'}
 function pct(n){return (n*100).toFixed(1)+'%'}
 
-function toggleImmo(){
-  const cb=document.getElementById('has_immo');
-  cb.checked=!cb.checked;
-  document.getElementById('immo_block').classList.toggle('hidden',!cb.checked);
+document.getElementById('has_immo').addEventListener('change', function(){
+  document.getElementById('immo_block').classList.toggle('hidden', !this.checked);
   calc();
-}
-document.getElementById('has_immo').addEventListener('change',calc);
+});
 
 ['brut','charge_jouissance','autres_credits','loyers_percus','mensualites_locatif'].forEach(id=>{
   const el=document.getElementById(id);
